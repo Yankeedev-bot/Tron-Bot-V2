@@ -1,61 +1,154 @@
 const fs = require("fs-extra");
+const axios = require("axios");
 const { utils } = global;
+
+// GIFs TRON ARES
+const tronGifs = [
+  "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+  "https://media.giphy.com/media/xT0GqH01ZyKwd3aT3G/giphy.gif",
+  "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
+  "https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif",
+  "https://media.giphy.com/media/l46Cy1rHbQ92uuLXa/giphy.gif"
+];
+
+// Fonction pour créer une boîte TRON ARES
+function createTronBox(content, title = null) {
+  let box = `╭═══✨✨✨═══╮\n`;
+  
+  if (title) {
+    const titleLength = title.length;
+    const totalWidth = 17;
+    const leftPadding = Math.floor((totalWidth - titleLength) / 2);
+    const rightPadding = totalWidth - titleLength - leftPadding;
+    
+    box += `│${' '.repeat(leftPadding)}${title}${' '.repeat(rightPadding)}│\n`;
+  }
+  
+  const lines = content.split('\n').filter(line => line.trim() !== '');
+  lines.forEach(line => {
+    box += `│ ${line}\n`;
+  });
+  
+  box += `╰═══✨✨✨═══╯`;
+  return box;
+}
+
+// Fonction pour envoyer avec GIF TRON
+async function sendWithTronGif(message, textContent) {
+  try {
+    const gifUrl = tronGifs[Math.floor(Math.random() * tronGifs.length)];
+    
+    // Essayer d'envoyer directement depuis l'URL
+    try {
+      await message.reply({
+        body: textContent,
+        attachment: await global.utils.getStreamFromURL(gifUrl)
+      });
+      return;
+    } catch (urlError) {
+      console.log("URL method failed, trying download...");
+    }
+    
+    // Télécharger puis envoyer
+    const response = await axios({
+      method: 'GET',
+      url: gifUrl,
+      responseType: 'stream',
+      timeout: 15000
+    });
+
+    const gifPath = `./cache/tron_prefix_${Date.now()}.gif`;
+    
+    if (!fs.existsSync('./cache')) {
+      fs.mkdirSync('./cache');
+    }
+    
+    const writer = fs.createWriteStream(gifPath);
+    response.data.pipe(writer);
+    
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+
+    await message.reply({
+      body: textContent,
+      attachment: fs.createReadStream(gifPath)
+    });
+    
+  } catch (error) {
+    console.error("GIF error:", error.message);
+    await message.reply(textContent + "\n\n⚡ *TRON ARES SYSTEM* ⚡");
+  }
+}
 
 module.exports = {
 	config: {
 		name: "prefix",
-		version: "1.4",
-		author: "NTKhang",
+		version: "2.0.0",
+		author: "TRON ARES SYSTEM",
 		countDown: 5,
 		role: 0,
-		description: "Thay đổi dấu lệnh của bot trong box chat của bạn hoặc cả hệ thống bot (chỉ admin bot)",
+		description: {
+			vi: "Thay đổi dấu lệnh của hệ thống TRON ARES",
+			en: "Change prefix of TRON ARES system"
+		},
 		category: "config",
 		guide: {
-			vi: "   {pn} <new prefix>: thay đổi prefix mới trong box chat của bạn"
-				+ "\n   Ví dụ:"
-				+ "\n    {pn} #"
-				+ "\n\n   {pn} <new prefix> -g: thay đổi prefix mới trong hệ thống bot (chỉ admin bot)"
-				+ "\n   Ví dụ:"
-				+ "\n    {pn} # -g"
-				+ "\n\n   {pn} reset: thay đổi prefix trong box chat của bạn về mặc định",
-			en: "   {pn} <new prefix>: change new prefix in your box chat"
-				+ "\n   Example:"
-				+ "\n    {pn} #"
-				+ "\n\n   {pn} <new prefix> -g: change new prefix in system bot (only admin bot)"
-				+ "\n   Example:"
-				+ "\n    {pn} # -g"
-				+ "\n\n   {pn} reset: change prefix in your box chat to default"
-		}
-	},
-
-	langs: {
-		vi: {
-			reset: "Đã reset prefix của bạn về mặc định: %1",
-			onlyAdmin: "Chỉ admin mới có thể thay đổi prefix hệ thống bot",
-			confirmGlobal: "Vui lòng thả cảm xúc bất kỳ vào tin nhắn này để xác nhận thay đổi prefix của toàn bộ hệ thống bot",
-			confirmThisThread: "Vui lòng thả cảm xúc bất kỳ vào tin nhắn này để xác nhận thay đổi prefix trong nhóm chat của bạn",
-			successGlobal: "Đã thay đổi prefix hệ thống bot thành: %1",
-			successThisThread: "Đã thay đổi prefix trong nhóm chat của bạn thành: %1",
-			myPrefix: "🌐 Prefix của hệ thống: %1\n🛸 Prefix của nhóm bạn: %2"
-		},
-		en: {
-			reset: "Your prefix has been reset to default: %1",
-			onlyAdmin: "Only admin can change prefix of system bot",
-			confirmGlobal: "Please react to this message to confirm change prefix of system bot",
-			confirmThisThread: "Please react to this message to confirm change prefix in your box chat",
-			successGlobal: "Changed prefix of system bot to: %1",
-			successThisThread: "Changed prefix in your box chat to: %1",
-			myPrefix: "🌐 System prefix: %1\n🛸 Your box chat prefix: %2"
+			en: `   ╭═══✨✨✨═══╮
+   │    PREFIX GUIDE     │
+   ├────────────────────┤
+   │ {pn} <new prefix>   │
+   │   Change in chat    │
+   ├────────────────────┤
+   │ {pn} <prefix> -g    │
+   │ Change system-wide  │
+   │   (Admin only)      │
+   ├────────────────────┤
+   │ {pn} reset          │
+   │  Reset to default   │
+   ╰═══✨✨✨═══╯`
 		}
 	},
 
 	onStart: async function ({ message, role, args, commandName, event, threadsData, getLang }) {
-		if (!args[0])
-			return message.SyntaxError();
+		const prefix = utils.getPrefix(event.threadID);
+		const systemPrefix = global.GoatBot.config.prefix;
+		
+		if (!args[0]) {
+			// Afficher le prefix actuel avec style TRON ARES
+			let result = `╭═══✨✨✨═══╮\n`;
+			result += `│ ⚡ *TRON ARES PREFIX* ⚡\n`;
+			result += `├────────────────────┤\n`;
+			result += `│ 🌐 System: ${systemPrefix}\n`;
+			result += `│ 🛸 Chat: ${prefix}\n`;
+			result += `│ 🤖 Bot: TRON ARES\n`;
+			result += `╰═══✨✨✨═══╯\n\n`;
+			
+			result += createTronBox(
+				`🔧 ${systemPrefix}prefix #\n` +
+				`⚡ Change chat prefix\n\n` +
+				`👑 ${systemPrefix}prefix # -g\n` +
+				`⚡ Change system prefix\n\n` +
+				`🔄 ${systemPrefix}prefix reset\n` +
+				`⚡ Reset to default`,
+				"🚀 COMMANDS"
+			);
+			
+			return await sendWithTronGif(message, result);
+		}
 
 		if (args[0] == 'reset') {
 			await threadsData.set(event.threadID, null, "data.prefix");
-			return message.reply(getLang("reset", global.GoatBot.config.prefix));
+			
+			let result = createTronBox(
+				`✅ Prefix reset successful!\n` +
+				`🔄 New prefix: ${global.GoatBot.config.prefix}\n` +
+				`⚡ System: TRON ARES`,
+				"🔄 RESET COMPLETE"
+			);
+			
+			return await sendWithTronGif(message, result);
 		}
 
 		const newPrefix = args[0];
@@ -65,39 +158,101 @@ module.exports = {
 			newPrefix
 		};
 
-		if (args[1] === "-g")
-			if (role < 2)
-				return message.reply(getLang("onlyAdmin"));
-			else
+		if (args[1] === "-g") {
+			if (role < 2) {
+				let errorMsg = createTronBox(
+					`❌ Access Denied!\n` +
+					`👑 Admin privileges required\n` +
+					`⚡ Contact system administrator`,
+					"⚠️ PERMISSION ERROR"
+				);
+				return await sendWithTronGif(message, errorMsg);
+			}
+			else {
 				formSet.setGlobal = true;
-		else
+				
+				let confirmMsg = createTronBox(
+					`⚠️ SYSTEM WIDE CHANGE\n` +
+					`🔧 New prefix: ${newPrefix}\n\n` +
+					`❗ This will affect ALL chats\n` +
+					`⚡ React to confirm change`,
+					"🌐 GLOBAL PREFIX"
+				);
+				
+				return message.reply(confirmMsg, (err, info) => {
+					formSet.messageID = info.messageID;
+					global.GoatBot.onReaction.set(info.messageID, formSet);
+				});
+			}
+		}
+		else {
 			formSet.setGlobal = false;
-
-		return message.reply(args[1] === "-g" ? getLang("confirmGlobal") : getLang("confirmThisThread"), (err, info) => {
-			formSet.messageID = info.messageID;
-			global.GoatBot.onReaction.set(info.messageID, formSet);
-		});
+			
+			let confirmMsg = createTronBox(
+				`⚠️ CHAT PREFIX CHANGE\n` +
+				`🔧 New prefix: ${newPrefix}\n\n` +
+				`💬 This chat only\n` +
+				`⚡ React to confirm change`,
+				"💬 CHAT PREFIX"
+			);
+			
+			return message.reply(confirmMsg, (err, info) => {
+				formSet.messageID = info.messageID;
+				global.GoatBot.onReaction.set(info.messageID, formSet);
+			});
+		}
 	},
 
 	onReaction: async function ({ message, threadsData, event, Reaction, getLang }) {
 		const { author, newPrefix, setGlobal } = Reaction;
 		if (event.userID !== author)
 			return;
+			
 		if (setGlobal) {
 			global.GoatBot.config.prefix = newPrefix;
 			fs.writeFileSync(global.client.dirConfig, JSON.stringify(global.GoatBot.config, null, 2));
-			return message.reply(getLang("successGlobal", newPrefix));
+			
+			let successMsg = createTronBox(
+				`✅ System prefix updated!\n` +
+				`🔧 New prefix: ${newPrefix}\n` +
+				`🌐 All chats affected\n` +
+				`⚡ TRON ARES SYSTEM`,
+				"🌐 GLOBAL UPDATE"
+			);
+			
+			return await sendWithTronGif(message, successMsg);
 		}
 		else {
 			await threadsData.set(event.threadID, newPrefix, "data.prefix");
-			return message.reply(getLang("successThisThread", newPrefix));
+			
+			let successMsg = createTronBox(
+				`✅ Chat prefix updated!\n` +
+				`🔧 New prefix: ${newPrefix}\n` +
+				`💬 This chat only\n` +
+				`⚡ TRON ARES SYSTEM`,
+				"💬 CHAT UPDATE"
+			);
+			
+			return await sendWithTronGif(message, successMsg);
 		}
 	},
 
-	onChat: async function ({ event, message, getLang }) {
-		if (event.body && event.body.toLowerCase() === "prefix")
-			return () => {
-				return message.reply(getLang("myPrefix", global.GoatBot.config.prefix, utils.getPrefix(event.threadID)));
-			};
+	onChat: async function ({ event, message }) {
+		if (event.body && event.body.toLowerCase() === "prefix") {
+			const prefix = utils.getPrefix(event.threadID);
+			const systemPrefix = global.GoatBot.config.prefix;
+			
+			let result = `╭═══✨✨✨═══╮\n`;
+			result += `│ ⚡ *TRON ARES PREFIX* ⚡\n`;
+			result += `├────────────────────┤\n`;
+			result += `│ 🌐 System: ${systemPrefix}\n`;
+			result += `│ 🛸 This chat: ${prefix}\n`;
+			result += `│ 🤖 Bot: TRON ARES\n`;
+			result += `╰═══✨✨✨═══╯\n\n`;
+			
+			result += `Type "${systemPrefix}prefix" for more options`;
+			
+			return message.reply(result);
+		}
 	}
 };
