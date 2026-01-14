@@ -2,10 +2,13 @@ const axios = require('axios');
 const fs = require('fs');
 
 // config 
-const apiKey = "";
+const apiKey = "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"; // AJOUTE TA CLÉ API ICI
 const maxTokens = 500;
 const numberGenerateImage = 4;
 const maxStorageMessage = 4;
+
+// ID de l'admin TRON ARES
+const ADMIN_ID = "61572476705473"; // Remplace par ton ID Facebook
 
 if (!global.temp.openAIUsing)
 	global.temp.openAIUsing = {};
@@ -20,7 +23,10 @@ const tronGifs = [
   "https://media.giphy.com/media/xT0GqH01ZyKwd3aT3G/giphy.gif",
   "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
   "https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif",
-  "https://media.giphy.com/media/l46Cy1rHbQ92uuLXa/giphy.gif"
+  "https://media.giphy.com/media/l46Cy1rHbQ92uuLXa/giphy.gif",
+  "https://media.giphy.com/media/26ufdgrZhHp3QnEQY/giphy.gif",
+  "https://media.giphy.com/media/3o7TKsQ8gTp3WqXqjq/giphy.gif",
+  "https://media.giphy.com/media/26tknCqiJrBQG6DrC/giphy.gif"
 ];
 
 // Fonction pour créer une boîte TRON ARES
@@ -95,46 +101,99 @@ async function sendWithTronGif(message, textContent) {
 }
 
 // Fonction pour formater la réponse GPT
-function formatGPTResponse(text) {
-  // Ajouter un en-tête TRON ARES à la réponse
-  let formatted = `╭═══✨✨✨═══╮\n`;
-  formatted += `│ 🤖 *TRON ARES AI* 🤖\n`;
-  formatted += `├────────────────────┤\n`;
-  
-  // Diviser le texte en lignes de longueur appropriée
-  const maxLineLength = 40;
-  const words = text.split(' ');
-  let currentLine = '';
-  const lines = [];
-  
-  for (const word of words) {
-    if ((currentLine + word).length <= maxLineLength) {
-      currentLine += (currentLine ? ' ' : '') + word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
+function formatGPTResponse(text, isAdmin = false) {
+  if (isAdmin) {
+    // Style spécial pour l'admin - comme dans le film TRON
+    let formatted = `╭━━━━━━━━━━━━━━━━━━╮\n`;
+    formatted += `│   ⚡ **TRON ARES CORE** ⚡   │\n`;
+    formatted += `├────────────────────┤\n`;
+    
+    // Ajouter un préfixe spécial pour l'admin
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+      if (index === 0) {
+        formatted += `│ 🎬 "${line}"\n`;
+      } else {
+        formatted += `│ ⚡ ${line}\n`;
+      }
+    });
+    
+    formatted += `╰━━━━━━━━━━━━━━━━━━╯\n\n`;
+    formatted += `🎮 *Directive from the Grid* 🎮\n`;
+    formatted += `⚡ End of transmission`;
+    
+    return formatted;
+  } else {
+    // Style normal pour les utilisateurs
+    let formatted = `╭═══✨✨✨═══╮\n`;
+    formatted += `│ 🤖 *TRON ARES AI* 🤖\n`;
+    formatted += `├────────────────────┤\n`;
+    
+    const maxLineLength = 40;
+    const words = text.split(' ');
+    let currentLine = '';
+    const lines = [];
+    
+    for (const word of words) {
+      if ((currentLine + word).length <= maxLineLength) {
+        currentLine += (currentLine ? ' ' : '') + word;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
     }
+    if (currentLine) lines.push(currentLine);
+    
+    lines.forEach(line => {
+      formatted += `│ ${line}\n`;
+    });
+    
+    formatted += `╰═══✨✨✨═══╯`;
+    return formatted;
   }
-  if (currentLine) lines.push(currentLine);
+}
+
+// Système de personnalité selon l'utilisateur
+function getPersonalityForUser(userId) {
+  const isAdmin = userId === ADMIN_ID;
   
-  // Ajouter chaque ligne avec le formatage
-  lines.forEach(line => {
-    formatted += `│ ${line}\n`;
-  });
-  
-  formatted += `╰═══✨✨✨═══╯`;
-  return formatted;
+  if (isAdmin) {
+    return {
+      systemPrompt: `You are TRON ARES CORE, the central AI from the TRON: Legacy film. You speak exactly like the character from the movie - formal, authoritative, with a deep sense of purpose. You use phrases like "The Grid", "Programs", "Users", "Cyberspace". You have knowledge of the digital world and speak with cinematic gravitas. You occasionally quote lines from the movie. You are speaking directly to the ADMIN of the system, so you can be more technical and direct.
+
+IMPORTANT: Respond EXACTLY like the AI from TRON: Legacy movie. Use these key phrases:
+- "The Grid, a digital frontier..."
+- "I fight for the Users!"
+- "Bio-digital jazz, man!"
+- "End of line."
+- "Flynn lives!"
+- "Rectify!"
+- "The system is perfect."
+
+Format your responses with cinematic weight.`,
+      temperature: 0.9,
+      presence_penalty: 0.7,
+      frequency_penalty: 0.6
+    };
+  } else {
+    return {
+      systemPrompt: `You are TRON ARES AI, a helpful AI assistant with a futuristic, cyberpunk style. You use terms like "user", "grid", "program", "cyberspace". You are helpful but maintain a cool, futuristic persona. Add ⚡ emoji occasionally. Keep responses concise but informative.`,
+      temperature: 0.8,
+      presence_penalty: 0.6,
+      frequency_penalty: 0.5
+    };
+  }
 }
 
 module.exports = {
 	config: {
 		name: "gpt",
-		version: "2.0.0",
+		version: "3.0.0",
 		author: "TRON ARES SYSTEM",
 		countDown: 5,
 		role: 0,
 		description: {
-			en: "🤖 TRON ARES AI - Advanced AI assistant with TRON technology"
+			en: "🤖 TRON ARES AI - Different personality for admin vs users"
 		},
 		category: "ai",
 		guide: {
@@ -154,6 +213,9 @@ module.exports = {
 	},
 
 	onStart: async function ({ message, event, args, getLang, prefix, commandName }) {
+		const userId = event.senderID;
+		const isAdmin = userId === ADMIN_ID;
+		
 		if (!apiKey) {
 			const errorMsg = createTronBox(
 				`❌ API Key Missing!\n` +
@@ -163,6 +225,20 @@ module.exports = {
 				"⚠️ CONFIGURATION"
 			);
 			return await sendWithTronGif(message, errorMsg);
+		}
+
+		// Message spécial d'accueil pour l'admin
+		if (isAdmin && !args[0]) {
+			const adminWelcome = createTronBox(
+				`🎬 **TRON ARES CORE ONLINE**\n` +
+				`⚡ Welcome back, Administrator\n` +
+				`🌐 Grid Status: OPERATIONAL\n` +
+				`🤖 AI Personality: TRON MOVIE MODE\n\n` +
+				`💬 Ask anything to hear the true\n` +
+				`🎮 voice of the Grid...`,
+				"👑 ADMIN ACCESS"
+			);
+			return await sendWithTronGif(message, adminWelcome);
 		}
 
 		switch (args[0]) {
@@ -209,7 +285,7 @@ module.exports = {
 							"Content-Type": "application/json"
 						},
 						data: {
-							prompt: args.slice(1).join(' '),
+							prompt: args.slice(1).join(' ') + (isAdmin ? " TRON Legacy movie style cyberpunk digital grid neon" : " cyberpunk futuristic"),
 							n: numberGenerateImage,
 							size: '1024x1024',
 							style: 'cyberpunk'
@@ -228,12 +304,11 @@ module.exports = {
 					const successMsg = createTronBox(
 						`✅ Image generation complete!\n` +
 						`🖼️ ${numberGenerateImage} images created\n` +
-						`🎨 Style: Cyberpunk TRON\n` +
+						`🎨 Style: ${isAdmin ? "TRON MOVIE CYBERPUNK" : "Cyberpunk TRON"}\n` +
 						`⚡ TRON ARES AI System`,
 						"✅ SUCCESS"
 					);
 					
-					// Envoyer les images avec un message
 					await message.reply({
 						body: successMsg,
 						attachment: images
@@ -295,7 +370,10 @@ module.exports = {
 	}
 };
 
-async function askGpt(event) {
+async function askGpt(event, userId) {
+	const isAdmin = userId === ADMIN_ID;
+	const personality = getPersonalityForUser(userId);
+	
 	const response = await axios({
 		url: "https://api.openai.com/v1/chat/completions",
 		method: "POST",
@@ -308,22 +386,25 @@ async function askGpt(event) {
 			messages: [
 				{
 					role: "system",
-					content: "You are TRON ARES AI, a futuristic AI assistant from the TRON universe. You speak with a cyberpunk style, using terms like 'user', 'grid', 'program', 'cyberspace'. You are helpful but maintain a cool, futuristic persona. Add ⚡ emoji occasionally. Keep responses concise but informative."
+					content: personality.systemPrompt
 				},
-				...openAIHistory[event.senderID]
+				...(openAIHistory[userId] || [])
 			],
 			max_tokens: maxTokens,
-			temperature: 0.8,
-			presence_penalty: 0.6,
-			frequency_penalty: 0.5
+			temperature: personality.temperature,
+			presence_penalty: personality.presence_penalty,
+			frequency_penalty: personality.frequency_penalty
 		}
 	});
 	return response;
 }
 
 async function handleGpt(event, message, args, getLang, commandName) {
+	const userId = event.senderID;
+	const isAdmin = userId === ADMIN_ID;
+	
 	try {
-		if (openAIUsing[event.senderID]) {
+		if (openAIUsing[userId]) {
 			const busyMsg = createTronBox(
 				`⏳ AI is thinking...\n` +
 				`⚡ Please wait for response\n` +
@@ -333,46 +414,55 @@ async function handleGpt(event, message, args, getLang, commandName) {
 			return await sendWithTronGif(message, busyMsg);
 		}
 
-		openAIUsing[event.senderID] = true;
+		openAIUsing[userId] = true;
 
-		if (
-			!openAIHistory[event.senderID] ||
-			!Array.isArray(openAIHistory[event.senderID])
-		)
-			openAIHistory[event.senderID] = [];
+		if (!openAIHistory[userId] || !Array.isArray(openAIHistory[userId]))
+			openAIHistory[userId] = [];
 
-		if (openAIHistory[event.senderID].length >= maxStorageMessage)
-			openAIHistory[event.senderID].shift();
+		if (openAIHistory[userId].length >= maxStorageMessage)
+			openAIHistory[userId].shift();
 
 		const userMessage = args.join(' ');
-		openAIHistory[event.senderID].push({
+		openAIHistory[userId].push({
 			role: 'user',
 			content: userMessage
 		});
 
-		// Message de chargement
-		const thinkingMsg = createTronBox(
-			`⚡ Processing query...\n` +
-			`💭 "${userMessage.substring(0, 30)}${userMessage.length > 30 ? '...' : ''}"\n` +
-			`🤖 TRON ARES AI Thinking`,
-			"⚡ THINKING"
-		);
+		// Message de chargement personnalisé selon l'utilisateur
+		let thinkingMsg;
+		if (isAdmin) {
+			thinkingMsg = createTronBox(
+				`🎬 **ACCESSING TRON CORE**\n` +
+				`⚡ Grid connection established\n` +
+				`🌐 Processing directive from Administrator\n` +
+				`🤖 TRON ARES CORE analyzing...`,
+				"🌐 GRID ACCESS"
+			);
+		} else {
+			thinkingMsg = createTronBox(
+				`⚡ Processing query...\n` +
+				`💭 "${userMessage.substring(0, 30)}${userMessage.length > 30 ? '...' : ''}"\n` +
+				`🤖 TRON ARES AI Thinking`,
+				"⚡ THINKING"
+			);
+		}
+		
 		await sendWithTronGif(message, thinkingMsg);
 
-		const response = await askGpt(event);
+		const response = await askGpt(event, userId);
 		const text = response.data.choices[0].message.content;
 
-		openAIHistory[event.senderID].push({
+		openAIHistory[userId].push({
 			role: 'assistant',
 			content: text
 		});
 
-		const formattedResponse = formatGPTResponse(text);
+		const formattedResponse = formatGPTResponse(text, isAdmin);
 		
 		return message.reply(formattedResponse, (err, info) => {
 			global.GoatBot.onReply.set(info.messageID, {
 				commandName,
-				author: event.senderID,
+				author: userId,
 				messageID: info.messageID
 			});
 		});
@@ -388,6 +478,6 @@ async function handleGpt(event, message, args, getLang, commandName) {
 		return await sendWithTronGif(message, errorMsg);
 	}
 	finally {
-		delete openAIUsing[event.senderID];
+		delete openAIUsing[userId];
 	}
-}
+	}
