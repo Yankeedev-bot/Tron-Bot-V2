@@ -1,4 +1,5 @@
 const axios = require('axios');
+const fs = require('fs');
 
 // config 
 const apiKey = "";
@@ -13,67 +14,193 @@ if (!global.temp.openAIHistory)
 
 const { openAIUsing, openAIHistory } = global.temp;
 
+// GIFs TRON ARES
+const tronGifs = [
+  "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+  "https://media.giphy.com/media/xT0GqH01ZyKwd3aT3G/giphy.gif",
+  "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
+  "https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif",
+  "https://media.giphy.com/media/l46Cy1rHbQ92uuLXa/giphy.gif"
+];
+
+// Fonction pour créer une boîte TRON ARES
+function createTronBox(content, title = null) {
+  let box = `╭═══✨✨✨═══╮\n`;
+  
+  if (title) {
+    const titleLength = title.length;
+    const totalWidth = 17;
+    const leftPadding = Math.floor((totalWidth - titleLength) / 2);
+    const rightPadding = totalWidth - titleLength - leftPadding;
+    
+    box += `│${' '.repeat(leftPadding)}${title}${' '.repeat(rightPadding)}│\n`;
+  }
+  
+  const lines = content.split('\n').filter(line => line.trim() !== '');
+  lines.forEach(line => {
+    box += `│ ${line}\n`;
+  });
+  
+  box += `╰═══✨✨✨═══╯`;
+  return box;
+}
+
+// Fonction pour envoyer avec GIF TRON
+async function sendWithTronGif(message, textContent) {
+  try {
+    const gifUrl = tronGifs[Math.floor(Math.random() * tronGifs.length)];
+    
+    // Essayer d'envoyer directement depuis l'URL
+    try {
+      await message.reply({
+        body: textContent,
+        attachment: await global.utils.getStreamFromURL(gifUrl)
+      });
+      return;
+    } catch (urlError) {
+      console.log("URL method failed, trying download...");
+    }
+    
+    // Télécharger puis envoyer
+    const response = await axios({
+      method: 'GET',
+      url: gifUrl,
+      responseType: 'stream',
+      timeout: 15000
+    });
+
+    const gifPath = `./cache/tron_gpt_${Date.now()}.gif`;
+    
+    if (!fs.existsSync('./cache')) {
+      fs.mkdirSync('./cache');
+    }
+    
+    const writer = fs.createWriteStream(gifPath);
+    response.data.pipe(writer);
+    
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+
+    await message.reply({
+      body: textContent,
+      attachment: fs.createReadStream(gifPath)
+    });
+    
+  } catch (error) {
+    console.error("GIF error:", error.message);
+    await message.reply(textContent + "\n\n⚡ *TRON ARES AI SYSTEM* ⚡");
+  }
+}
+
+// Fonction pour formater la réponse GPT
+function formatGPTResponse(text) {
+  // Ajouter un en-tête TRON ARES à la réponse
+  let formatted = `╭═══✨✨✨═══╮\n`;
+  formatted += `│ 🤖 *TRON ARES AI* 🤖\n`;
+  formatted += `├────────────────────┤\n`;
+  
+  // Diviser le texte en lignes de longueur appropriée
+  const maxLineLength = 40;
+  const words = text.split(' ');
+  let currentLine = '';
+  const lines = [];
+  
+  for (const word of words) {
+    if ((currentLine + word).length <= maxLineLength) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  // Ajouter chaque ligne avec le formatage
+  lines.forEach(line => {
+    formatted += `│ ${line}\n`;
+  });
+  
+  formatted += `╰═══✨✨✨═══╯`;
+  return formatted;
+}
+
 module.exports = {
 	config: {
 		name: "gpt",
-		version: "1.4",
-		author: "NTKhang",
+		version: "2.0.0",
+		author: "TRON ARES SYSTEM",
 		countDown: 5,
 		role: 0,
 		description: {
-			vi: "GPT chat",
-			en: "GPT chat"
+			en: "🤖 TRON ARES AI - Advanced AI assistant with TRON technology"
 		},
-		category: "box chat",
+		category: "ai",
 		guide: {
-			vi: "   {pn} <draw> <nội dung> - tạo hình ảnh từ nội dung"
-				+ "\n   {pn} <clear> - xóa lịch sử chat với gpt"
-				+ "\n   {pn} <nội dung> - chat với gpt",
-			en: "   {pn} <draw> <content> - create image from content"
-				+ "\n   {pn} <clear> - clear chat history with gpt"
-				+ "\n   {pn} <content> - chat with gpt"
-		}
-	},
-
-	langs: {
-		vi: {
-			apiKeyEmpty: "Vui lòng cung cấp api key cho openai tại file scripts/cmds/gpt.js",
-			invalidContentDraw: "Vui lòng nhập nội dung bạn muốn vẽ",
-			yourAreUsing: "Bạn đang sử dụng gpt chat, vui lòng chờ quay lại sau khi yêu cầu trước kết thúc",
-			processingRequest: "Đang xử lý yêu cầu của bạn, quá trình này có thể mất vài phút, vui lòng chờ",
-			invalidContent: "Vui lòng nhập nội dung bạn muốn chat",
-			error: "Đã có lỗi xảy ra\n%1",
-			clearHistory: "Đã xóa lịch sử chat của bạn với gpt"
-		},
-		en: {
-			apiKeyEmpty: "Please provide api key for openai at file scripts/cmds/gpt.js",
-			invalidContentDraw: "Please enter the content you want to draw",
-			yourAreUsing: "You are using gpt chat, please wait until the previous request ends",
-			processingRequest: "Processing your request, this process may take a few minutes, please wait",
-			invalidContent: "Please enter the content you want to chat",
-			error: "An error has occurred\n%1",
-			clearHistory: "Your chat history with gpt has been deleted"
+			en: `╭═══✨✨✨═══╮
+│   🤖 GPT COMMANDS   │
+├────────────────────┤
+│ {pn} <question>     │
+│   Chat with AI     │
+├────────────────────┤
+│ {pn} draw <text>    │
+│ Generate AI images │
+├────────────────────┤
+│ {pn} clear          │
+│ Clear chat history │
+╰═══✨✨✨═══╯`
 		}
 	},
 
 	onStart: async function ({ message, event, args, getLang, prefix, commandName }) {
-		if (!apiKey)
-			return message.reply(getLang('apiKeyEmpty', prefix));
+		if (!apiKey) {
+			const errorMsg = createTronBox(
+				`❌ API Key Missing!\n` +
+				`🔑 Add your OpenAI key\n` +
+				`📁 File: scripts/cmds/gpt.js\n` +
+				`⚡ Line: const apiKey = "YOUR_KEY";`,
+				"⚠️ CONFIGURATION"
+			);
+			return await sendWithTronGif(message, errorMsg);
+		}
 
 		switch (args[0]) {
 			case 'img':
 			case 'image':
 			case 'draw': {
-				if (!args[1])
-					return message.reply(getLang('invalidContentDraw'));
-				if (openAIUsing[event.senderID])
-					return message.reply(getLang("yourAreUsing"));
+				if (!args[1]) {
+					const errorMsg = createTronBox(
+						`❌ Missing content!\n` +
+						`🎨 Example: ${prefix}gpt draw cyberpunk city\n` +
+						`⚡ TRON ARES AI Image Generator`,
+						"🎨 IMAGE GENERATION"
+					);
+					return await sendWithTronGif(message, errorMsg);
+				}
+				
+				if (openAIUsing[event.senderID]) {
+					const busyMsg = createTronBox(
+						`⏳ AI is processing...\n` +
+						`⚡ Please wait for completion\n` +
+						`🤖 TRON ARES AI System`,
+						"⚡ PROCESSING"
+					);
+					return await sendWithTronGif(message, busyMsg);
+				}
 
 				openAIUsing[event.senderID] = true;
 
 				let sending;
 				try {
-					sending = message.reply(getLang('processingRequest'));
+					const loadingMsg = createTronBox(
+						`🔄 Generating images...\n` +
+						`🎨 Prompt: ${args.slice(1).join(' ').substring(0, 30)}...\n` +
+						`⚡ TRON ARES AI Engine`,
+						"🎨 GENERATING"
+					);
+					sending = await sendWithTronGif(message, loadingMsg);
+					
 					const responseImage = await axios({
 						url: "https://api.openai.com/v1/images/generations",
 						method: "POST",
@@ -84,37 +211,75 @@ module.exports = {
 						data: {
 							prompt: args.slice(1).join(' '),
 							n: numberGenerateImage,
-							size: '1024x1024'
+							size: '1024x1024',
+							style: 'cyberpunk'
 						}
 					});
+					
 					const imageUrls = responseImage.data.data;
-					const images = await Promise.all(imageUrls.map(async (item) => {
+					const images = await Promise.all(imageUrls.map(async (item, index) => {
 						const image = await axios.get(item.url, {
 							responseType: 'stream'
 						});
-						image.data.path = `${Date.now()}.png`;
+						image.data.path = `tron_ai_${Date.now()}_${index}.png`;
 						return image.data;
 					}));
-					return message.reply({
+					
+					const successMsg = createTronBox(
+						`✅ Image generation complete!\n` +
+						`🖼️ ${numberGenerateImage} images created\n` +
+						`🎨 Style: Cyberpunk TRON\n` +
+						`⚡ TRON ARES AI System`,
+						"✅ SUCCESS"
+					);
+					
+					// Envoyer les images avec un message
+					await message.reply({
+						body: successMsg,
 						attachment: images
 					});
+					
 				}
 				catch (err) {
-					const errorMessage = err.response?.data.error.message || err.message;
-					return message.reply(getLang('error', errorMessage || ''));
+					const errorMessage = err.response?.data.error?.message || err.message || "Unknown error";
+					const errorMsg = createTronBox(
+						`❌ Generation failed!\n` +
+						`🔧 Error: ${errorMessage.substring(0, 50)}...\n` +
+						`⚡ TRON ARES AI System`,
+						"❌ ERROR"
+					);
+					return await sendWithTronGif(message, errorMsg);
 				}
 				finally {
 					delete openAIUsing[event.senderID];
-					message.unsend((await sending).messageID);
 				}
+				break;
 			}
+			
 			case 'clear': {
 				openAIHistory[event.senderID] = [];
-				return message.reply(getLang('clearHistory'));
+				const clearMsg = createTronBox(
+					`✅ Chat history cleared!\n` +
+					`🗑️ Memory reset complete\n` +
+					`🤖 Ready for new conversation\n` +
+					`⚡ TRON ARES AI System`,
+					"🗑️ CLEARED"
+				);
+				return await sendWithTronGif(message, clearMsg);
 			}
+			
 			default: {
-				if (!args[0])
-					return message.reply(getLang('invalidContent'));
+				if (!args[0]) {
+					const welcomeMsg = createTronBox(
+						`🤖 Welcome to TRON ARES AI!\n` +
+						`💬 Ask me anything\n` +
+						`🎨 ${prefix}gpt draw <text> - Generate images\n` +
+						`🗑️ ${prefix}gpt clear - Clear history\n` +
+						`⚡ Powered by OpenAI GPT`,
+						"🤖 TRON ARES AI"
+					);
+					return await sendWithTronGif(message, welcomeMsg);
+				}
 
 				handleGpt(event, message, args, getLang, commandName);
 			}
@@ -140,9 +305,17 @@ async function askGpt(event) {
 		},
 		data: {
 			model: "gpt-3.5-turbo",
-			messages: openAIHistory[event.senderID],
+			messages: [
+				{
+					role: "system",
+					content: "You are TRON ARES AI, a futuristic AI assistant from the TRON universe. You speak with a cyberpunk style, using terms like 'user', 'grid', 'program', 'cyberspace'. You are helpful but maintain a cool, futuristic persona. Add ⚡ emoji occasionally. Keep responses concise but informative."
+				},
+				...openAIHistory[event.senderID]
+			],
 			max_tokens: maxTokens,
-			temperature: 0.7
+			temperature: 0.8,
+			presence_penalty: 0.6,
+			frequency_penalty: 0.5
 		}
 	});
 	return response;
@@ -150,6 +323,16 @@ async function askGpt(event) {
 
 async function handleGpt(event, message, args, getLang, commandName) {
 	try {
+		if (openAIUsing[event.senderID]) {
+			const busyMsg = createTronBox(
+				`⏳ AI is thinking...\n` +
+				`⚡ Please wait for response\n` +
+				`🤖 TRON ARES AI System`,
+				"⚡ PROCESSING"
+			);
+			return await sendWithTronGif(message, busyMsg);
+		}
+
 		openAIUsing[event.senderID] = true;
 
 		if (
@@ -161,10 +344,20 @@ async function handleGpt(event, message, args, getLang, commandName) {
 		if (openAIHistory[event.senderID].length >= maxStorageMessage)
 			openAIHistory[event.senderID].shift();
 
+		const userMessage = args.join(' ');
 		openAIHistory[event.senderID].push({
 			role: 'user',
-			content: args.join(' ')
+			content: userMessage
 		});
+
+		// Message de chargement
+		const thinkingMsg = createTronBox(
+			`⚡ Processing query...\n` +
+			`💭 "${userMessage.substring(0, 30)}${userMessage.length > 30 ? '...' : ''}"\n` +
+			`🤖 TRON ARES AI Thinking`,
+			"⚡ THINKING"
+		);
+		await sendWithTronGif(message, thinkingMsg);
 
 		const response = await askGpt(event);
 		const text = response.data.choices[0].message.content;
@@ -174,7 +367,9 @@ async function handleGpt(event, message, args, getLang, commandName) {
 			content: text
 		});
 
-		return message.reply(text, (err, info) => {
+		const formattedResponse = formatGPTResponse(text);
+		
+		return message.reply(formattedResponse, (err, info) => {
 			global.GoatBot.onReply.set(info.messageID, {
 				commandName,
 				author: event.senderID,
@@ -183,8 +378,14 @@ async function handleGpt(event, message, args, getLang, commandName) {
 		});
 	}
 	catch (err) {
-		const errorMessage = err.response?.data.error.message || err.message || "";
-		return message.reply(getLang('error', errorMessage));
+		const errorMessage = err.response?.data.error?.message || err.message || "Unknown error";
+		const errorMsg = createTronBox(
+			`❌ AI Error!\n` +
+			`🔧 ${errorMessage.substring(0, 80)}${errorMessage.length > 80 ? '...' : ''}\n` +
+			`⚡ TRON ARES AI System`,
+			"❌ ERROR"
+		);
+		return await sendWithTronGif(message, errorMsg);
 	}
 	finally {
 		delete openAIUsing[event.senderID];
