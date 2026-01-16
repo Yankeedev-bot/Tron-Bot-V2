@@ -168,7 +168,7 @@ module.exports = {
   },
 
   onStart: async function ({ message, args, event, role }) {
-    const prefix = getPrefix(event.threadID);
+    let prefix = getPrefix(event.threadID);  // CORRIGÉ: const → let
     const input = args.join(" ").trim().toLowerCase();
     
     // Obtenir le nom de l'utilisateur
